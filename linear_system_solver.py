@@ -28,27 +28,6 @@ def reduce_system(system: list[list[int]]):
     return result
 
 
-def solve_system_non_zero_coefs(system: list[list[int]]):
-    """Implementation of the Algorithm 3"""
-    n = len(system)
-    if n == 2:
-        return solve_system_two_unknowns(*system[0], *system[1])
-    else:
-        reduced_system = reduce_system(system)
-        solutions_found = solve_system_non_zero_coefs(reduced_system)
-        if not isinstance(solutions_found, tuple):
-            # Infinitely many or no solutions
-            return solutions_found
-
-        x_n = 0
-        for m in range(0, n - 1):
-            x_n -= (system[0][m] / system[0][n - 1]) * solutions_found[m]
-
-        x_n += system[0][-1] / system[0][n - 1]
-
-        return solutions_found + (x_n,)
-
-
 def ensure_non_zero_coefs(system: list[list[int]]):
     """Implementation of the Algorithm 4"""
     result = copy.deepcopy(system)

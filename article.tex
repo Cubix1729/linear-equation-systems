@@ -1,0 +1,586 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{hyperref}
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+\usepackage[boxed]{algorithm2e}
+\SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
+\SetKwComment{Comment}{/* }{ */}
+
+\title{Making an algorithm for solving linear equation systems}
+\author{Timothée Monin}
+\date{April 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document shows some personal research done on my own for finding an algorithm
+to solve any system of $n$ linear equations with $n$ unknowns,
+based on the coefficients and constant terms of the equations in the system.
+We will first treat the base case $n = 2$, and then we will extend it to the general case.
+\end{abstract}
+
+\tableofcontents
+
+\pagebreak
+
+\section{The base case: linear systems of two equations with two unknowns}
+
+First of all, we will study the base case of systems of two linear equations with two unknowns (case $n = 2$).
+We could also consider that the base case is the case $n = 1$, but
+this case is trivial to solve.
+
+So, that said, let us consider the following system of equations:
+
+\[
+\begin{cases}
+    a_1 x + b_1 y = c_1 \\
+    a_2 x + b_2 y = c_2
+\end{cases}
+\]
+
+where the unknowns are $x$ and $y$, and the values $a_1, a_2, b_1$ and $b_2$ are the coefficients of the system.
+
+\subsection{Finding the solutions}
+
+We first find $y$ in terms of $x$ (it could be in the other direction, this choice is arbitrary).
+For example, if we use the first equation of the system:
+
+
+\begin{align*}
+    &a_1 x + b_1 y = c_1 \\
+    \iff &b_1 y = c_1 - a_1 x \\
+    \iff &y = \frac{c_1 - a_1 x}{b_1} \text{ for } b_1 \neq 0\\
+\end{align*}
+
+This only works for $b_1 \neq 0$, but if we choose the other equation, we instead have:
+
+$$y = \frac{c_2 - a_2 x}{b_2}$$
+
+which only works for $b_2 \neq 0$.
+
+Note that at this point, we have two different solutions for expressing $y$ in terms of $x$, with two different restrictions about the coefficient values.
+
+Also note that the two expressions only differ by the number/index of the equation of the coefficients (for example $a_1$ is replaced by $a_2$ in the second relation).
+
+Now we can arbitrarily choose one of the relations, to express $y$ in terms of $x$ in the equation which was not used to find to find the relation, to finally find the solution for $x$.
+We have, using the first expression of $y$ in terms of $x$:
+
+\begin{align*}
+    &a_2 x + b_2 y = c_2 \\
+    \iff &a_2 x + b_2 (\frac{c_1 - a_1 x}{b_1}) = c_2  \text{ for } b_1 \neq 0\\
+    \iff &a_2 x + \frac{b_2 c_1 - a_1 b_2 x}{b_1} = c_2 \\
+    \iff &a_2 b_1 x + b_2 c_1 - a_1 b_2 x = b_1 c_2 \\
+    \iff &a_2 b_1 x - a_1 b_2 x = b_1 c_2 - b_2 c_1 \\
+    \iff &a_1 a_2 b_1 b_2 (\frac{1}{a_1 b_2} x - \frac{1}{a_2 b_1} x) = b_1 c_2 - b_2 c_1 \text{ for } a_1, a_2, b_2 \text{ (and } b_1 \text{)} \neq 0 \\
+    \iff &\frac{1}{a_1 b_2} x - \frac{1}{a_2 b_1} x = \frac{b_1 c_2 - b_2 c_1}{a_1 a_2 b_1 b_2} \\
+    \iff &(\frac{1}{a_1 b_2} - \frac{1}{a_2 b_1}) x = \frac{b_1 c_2 - b_2 c_1}{a_1 a_2 b_1 b_2} \\
+    \iff &(\frac{a_2 b_1 - a_1 b_2}{a_1 a_2 b_1 b_2}) x = \frac{b_1 c_2 - b_2 c_1}{a_1 a_2 b_1 b_2} \\
+    \iff &x = \frac{b_1 c_2 - b_2 c_1}{a_1 a_2 b_1 b_2} \frac{a_1 a_2 b_1 b_2}{a_2 b_1 - a_1 b_2} \text{ for } a_2 b_1 - a_1 b_2 \neq 0 \\
+    \iff &x = \frac{b_1 c_2 - b_2 c_1}{a_2 b_1 - a_1 b_2} \text{ for } a_1, a_2, b_1, b_2, \text{ and } a_2 b_1 - a_1 b_2 \neq 0 \\
+\end{align*}
+
+\subsection{The special cases}
+
+So we have found an - almost  systematic - solution for $x$. Now, let us study these different cases for the forbidden values of the solution:
+
+\begin{itemize}
+
+\item \textbf{If any of  $\mathbf{a_1, a_2, b_1}$ or $\mathbf{b_2 = 0}$}
+
+    In this case, either the system will have solution for $x$ and $y$ like normal, or
+    it will admit only a solution for $x$ or $y$, or it will have no solution.
+    But we won't focus on this case and we will discard it.
+    
+\item \textbf{If $\mathbf{a_2 b_1 - a_1 b_2 = 0}$}, but $a_1, a_2, b_1,$ and $b_2 \neq 0$
+    
+    In this case, we have $\displaystyle \frac{a_1}{a_2} = \frac{b_1}{b_2}$, since
+    $\displaystyle a_2 b_1 - a_1 b_2 = 0 \iff  a_1 b_2 = b_1 a_2
+    \iff \frac{a_1}{a_2} = \frac{b_1}{b_2}$, and we already assumed that $a_1, a_2, b_1,$ and $b_2 \neq 0$.
+    
+    Let $\displaystyle k = \frac{a_1}{a_2} = \frac{b_1}{b_2}$.
+    We have $a_1 = k a_2$ and $b_1 = k b_2$.
+
+    It means that the left-hand parts of the two equations of the system are proportional, because $a_1 x + b_1 y = k a_2 x + k b_2 y = k (a_2 x + b_2 y)$.
+    
+    We then distinguish two cases:
+    
+    \begin{itemize}
+    
+    \item \textbf{If $\mathbf{c_1 = k c_2}$}
+    
+        In this case, we can get the first equation by multiplying both sides of the second equation by $k$. This means that $a_2 x + b_2 y = c_2 \iff a_1 x + b_1 y = c_1$,
+        so we only really have one equation, with two unknowns.
+        
+        But one linear equation with two unknowns and non-zero coefficients has infinitely many solutions.
+        Proof:
+        
+        Let us consider the equation $a x + b x = c$, with non-zero coefficients.
+        For any solution for $x$, there exists a solution for $y$ and it is:
+        \[y = \frac{c - a x}{b} \text{ for } b \neq 0\]
+        There are infinitely many values possible for $x$, so therefore there are infinitely many solutions that work for $x$ and $y$.
+        
+        We can now conclude that in the current case, there will be infinitely many solutions for the equation system.
+    
+    \item \textbf{If $\mathbf{c_1 \neq k c_2}$}
+    
+        In this case we have:
+        
+        \begin{align*}
+            a_2 x + b_2 y = c_2 \iff &k a_2 x + k b_2 y = k c_2 \\
+            \iff &a_1 x + b_1 y = k c_2 \\
+            \implies &a_1 x + b_1 y \neq c_1 \\
+        \end{align*}
+        
+        This means that if we find a solution for $x$ and $y$ that satisfies the second equation, then this solution will not work with the first equation.
+        Therefore, the system of equations admits no solutions in the current case we are dealing with.
+    
+    \end{itemize}
+
+\end{itemize}
+
+\subsection{Making the (almost) general algorithm}
+
+We have finished treating the special cases, which correspond to the forbidden values found for the solution for $x$.
+But now, how we can know $y$ ?
+Well, we can just mirror the solution previously found.
+We can use the solution for $x$ and use it for $y$; we just have to modify the coefficient names in the solution: $a$ coefficients become $b$ coefficients, and vice versa.
+
+We are now ready to find an algorithm to solve a system of two linear equations with two unknowns.
+But because the case where any of $a_1, a_2, b_1$ or $b_2 = 0$ complexifies the algorithm, we will omit it.
+
+\begin{algorithm}
+\caption{An algorithm to find the solutions $x$ and $y$ of a linear system of two equations with non-zero variable coefficients}
+    \Input{The coefficients and constant terms of the equation, but with $a_1, a_2, b_1$ and $b_2 \neq 0$}
+    \Output{The solutions for $x$ and $y$}
+
+    \BlankLine
+
+    \eIf{$a_2 b_1 - a_1 b_2 = 0$}{
+        \BlankLine
+        \eIf{$\displaystyle \frac{a_1}{a_2} = \frac{c_1}{c_2}$}{
+            \BlankLine
+            \KwRet{``Infinitely many solutions''}
+        }{
+            \KwRet{``No solutions''}
+        }
+    }{
+        $x \gets \displaystyle \frac{b_1 c_2 - b_2 c_1}{a_2 b_1 - a_1 b_2}$\;
+        \BlankLine
+        $y \gets \displaystyle \frac{a_1 c_2 - a_2 c_1}{b_2 a_1 - b_1 a_2}$\;
+        \BlankLine
+        \KwRet{x, y}
+    }
+\end{algorithm}
+
+\section{Extending to the (almost) general case}
+
+We will now consider the general case, i.e. systems of $n$ equations with $n$ unknowns:
+
+\[
+\begin{cases}
+    a_{11} x_1 + a_{12} x_2 + \dots + a_{1n} x_n = b_1 \\
+    a_{11} x_1 + a_{12} x_2 + \dots + a_{1n} x_n = b_2 \\
+    \vdots \\
+    a_{n1} x_1 + a_{n2} x_2 + \dots + a_{nn} x_n = b_n \\
+\end{cases}
+\]
+
+where the unknowns are $x_1, x_2, \dots, x_n$, the coefficients are the $a$ terms, and the \textit{constant terms} are the $b$ terms.
+
+Note that we must have $n \ge 2$ (with $n = 1$, it is not a \textit{system} of equations any more).
+ 
+Because the solution we found for the case $n = 2$ was restricted to non-zero coefficients, we will only study equation systems with non-zero coefficients.
+
+\subsection{Reducing an equation system to a base case}
+
+In order to find a general solution, one idea could be to ``eliminate'' one unknown at a time, and this way convert repeatedly an $n$ equations linear system to a $n - 1$ equations linear system, until we reach the case $n = 2$.
+If we want to do that, we first have to find an algorithm that does this elimination process.
+
+Let us assume we want to eliminate the last unknown of the system, i.e. $x_n$.
+We will proceed by finding its expression in terms of the other unknowns, from one of the equations.
+So, if we take the $m$-th equation (with $m \le n$ obviously), we will have:
+
+\begin{align*}
+\begin{aligned}
+    &a_{m1} x_1 + a_{m2} x_2 + \dots + a_{mn} x_n = b_m \\
+    \iff &a_{mn} x_n = b_m - a_{m1} x_1 - a_{m2} x_2 - \dots - a_{m-1n} x_{m - 1} \\
+    \iff &x_n = \frac{b_m - a_{m1} x_1 - a_{m2} x_2 - \dots - a_{mn - 1} x_{n - 1}}{a_{mn}} \text{ because $a_{mn} \neq 0$} \\
+    \iff &x_n = -\frac{a_{m1}}{a_{mn}} x_1 - \frac{a_{m2}}{a_{mn}} x_2 - ... - \frac{a_{mn - 1}}{a_{mn}} x_{n - 1} + \frac{b_m}{a_{mn}}
+\end{aligned}
+\end{align*}
+
+So we know how to express the last unknown of an equation in terms of the other unknowns (plus a constant term).
+To eliminate the last variable in one of the equations, we have to pick another equation and calculate the last variable in terms of the others, and then plug in the expression found into the first equation.
+To plug in the expression found into the equation, we first multiply the coefficients (and the constant term) of the expression by the coefficient of the last unknown in the equation.
+Then, for each unknown in the equation we add to its coefficient the corresponding coefficient in the expression
+(because coefficients are in the left-hand side).
+Finally, we subtract the constant term of the expression to the constant term in the right-hand part of the equation
+(because constant terms are in the right-hand side).
+
+To express it mathematically, if we want to eliminate the last unknown of the $k$-th equation of the system using the $m$-th equation, we will apply the following relation:
+
+\begin{align*}
+    &a_{k1} x_1 + a_{k2} x_2 + \dots + a_{kn} x_n = b_k\\
+    \iff &a_{k1} x_1 + a_{k2} x_2 + \dots + a_{kn} (-\frac{a_{m1}}{a_{mn}} x_1 - \frac{a_{m2}}{a_{mn}} x_2 - ... - \frac{a_{mn - 1}}{a_{mn}} x_{n - 1} + \frac{b_m}{a_{mn}}) = b_k\\
+    \iff &(a_{k1} + (-\frac{a_{m1}}{a_{mn}}) \cdot {a_{kn}}) \cdot x_1 + \dots + (a_{kn - 1} + (-\frac{a_{mn - 1}}{a_{mn}}) \cdot a_{kn}) \cdot x_{n - 1} = b_k - \frac{b_m}{a_{mn}} \cdot a_{kn}
+\end{align*}
+
+For our algorithm, we will take the first equation of the system to express the last unknown in terms of the others.
+Once we have replaced the last variable in the other equations, we can discard the first equation, because we now have $n - 1$ unknowns, so we only need $n - 1$ equations. 
+
+That explanation was a little bit unclear, but now let us make the algorithm to eliminate the last variable of the equation system:
+
+\begin{algorithm}
+\caption{An algorithm to eliminate the last unknown of an linear equation system with non-zero coefficients}
+    \Input{The (non-zero) coefficients and the constant terms of the system of $n$ equations with $n$ unknowns}
+    \Output{The $n - 1$ system of linear equations}
+
+    \For{$i = 2$ \KwTo{$n$}}{
+        \For{$j = 1$ \KwTo{$n - 1$}}{
+        \BlankLine
+        $\displaystyle a_{ij} \gets a_{ij} + (- \frac{a_{1j}}{a_{1n}}) \cdot a_{in}$
+        \BlankLine
+        }
+        $\displaystyle b_i \gets b_i - (\frac{b_1}{a_{1n}}) \cdot a_{in}$\;
+        \BlankLine
+        \textbf{remove } $a_{in}$
+    }
+
+    \BlankLine
+    \textbf{remove } $a_{1\dots}$ coefficients\;
+    \KwRet{all defined coefficients and constant terms}
+\end{algorithm}
+
+\subsection{Making the full algorithm}
+
+Now that we have an algorithm eliminate an unknown of a system with non-zero coefficients to produce a system of $n - 1$ equations with $n - 1$ unknowns,
+we can start finding an algorithm to solve a linear system.
+In order to do that, let us take an example.
+
+For example, let us take the case $n = 3$ (still with non-zero coefficients).
+In this case, we have 3 unknowns.
+We will first apply the \textbf{Algorithm 2} to eliminate the last unknown ($x_3$ here).
+We will now have a system with only 2 equations and 2 unknowns, which we know how to solve.
+Then, once we have found the values for $x_1$ and $x_2$, we can apply the formula found earlier which gives the value of $x_n$ (here $x_3$) in terms of all the other values in a one specific equation in the system.
+In our algorithm, we will use the first equation to find a solution for the last unknown, but this choice is arbitrary.
+At this point, the system will be solved.
+
+This process works for $n = 3$ but it also works for \textit{any} size.
+
+Now, we are ready to make the (quite informal) algorithm to solve a linear equation system with non-zero coefficients:
+
+\begin{algorithm}
+\caption{An algorithm to find the solutions of a linear system of equations with non-zero coefficients}
+    \Input{The (non-zero) coefficients and the constant terms of the equation system}
+    \Output{The solutions of the system}
+    \eIf{$n = 2$}{
+        Use \textbf{Algorithm 1} to solve the system\;
+        \KwRet{the result(s) found}
+    }{
+        Use \textbf{Algorithm 2} to reduce the size of the system\;
+        Recursively call this algorithm to find the solutions of the reduced system\;
+        \uIf{``Infinitely many solutions''}{
+            \KwRet{``Infinitely many solutions''}
+        }
+        \ElseIf{``No solutions''}{
+            \KwRet{``No solutions''}
+        }
+        $\displaystyle x_n \gets -\frac{a_{11}}{a_{1n}} x_1 - \frac{a_{12}}{a_{1n}} x_2 - ... - \frac{a_{1n - 1}}{a_{1n}} x_{n - 1} + \frac{b_1}{a_{1n}}$
+        \Comment*{We take the first equation to find the solution for $x_n$}
+        \BlankLine
+        \KwRet{the solutions found}     
+    }
+\end{algorithm}
+
+Note that we could have chosen the base case to be $n = 1$, and it would have made the \textbf{Algorithm 1} much simpler.
+But we can justify this choice by the little bit of efficiency gained, and with the fact that the solution found for linear systems of 2 equations with 2 unknowns is quite simple and elegant.
+
+\section{But this only works with non-zero coefficients, doesn't it?}
+
+The algorithm found previously only works with non-zero coefficients.
+Another problem we did not talk about is the case where the \textbf{Algorithm 2} returns a reduced system with one or more null coefficients.
+
+This means the algorithm found is incomplete as it cannot handle null coefficients.
+In order to make it complete, one idea could be to find algorithm to transform a system \textit{with} some null coefficients to a system with all coefficients being non-zero.
+
+\subsection{Ensuring the coefficients are non-zero}
+
+The basic idea is to eliminate these null coefficients is to ``add'' equations together.
+For each null coefficient, we add the the left and right-hand sides of the equation containing the null coefficient with another equation of the system, and replace the original equation with the resulting equation.
+In this method we have to choose the equation to add to the first one to have a non-zero coefficient in front of the unknown which has the null coefficient in the first equation.
+If no such equation exists, it means that the system only really has less than $n$ unknowns, and therefore it is invalid.
+After ``removing'' a null coefficient, we have to process the equation in which it was to ensure that another null coefficient wasn't created when adding the other equation.
+
+To illustrate the idea, let us use it on an example:
+
+\[
+\begin{cases}
+    0x - 3y = 6\\
+    8x + 0y = 2\\
+\end{cases}
+\]
+
+This system of equation, chosen at random, has two different null coefficients.
+
+Here, we would first add the equation number 2 to the equation number 1.
+The system now becomes:
+
+\[
+\begin{cases}
+    8x - 3y = 8\\
+    8x + 0y = 2
+\end{cases}
+\]
+
+The system still remains equivalent to the first one, since we can ``subtract'' the second equation to get the original equation number 1.
+
+We can now eliminate the second null coefficient of the system, by adding the first equation to the second:
+
+\[
+\begin{cases}
+    8x - 3y = 8\\
+    16x - 3y = 10
+\end{cases}
+\]
+
+Now, let us make the general algorithm:
+
+\begin{algorithm}
+\caption{An algorithm to ensure a system of linear equations does not have null coefficients}
+    \Input{The original system to process}
+    \Output{An equivalent system with non-zero coefficients (if the given system only has non-zero coefficients, it remains unchanged)}
+
+    $i \gets 0$\;
+    \While{$i \neq n$}{
+        $j \gets 0$\;
+        \While{$j \neq n$}{
+            \eIf{$a_{ij} = 0$}{
+                pick any number $m$ for which $a_{mj} \neq 0$\;
+                \For{$k = 1$ \KwTo{$n$}}{
+                    $a_{ik} \gets a_{ik} + a_{mk}$ \Comment*[r]{Adding coefficients}
+                }
+                $b_i \gets b_i + b_m$ \Comment*[r]{Adding the constant term}
+                $j = 0$ \Comment*[r]{Checking the current equation again}
+            }{
+               $j \gets j + 1$\;
+            }
+            $i \gets i + 1$\;
+        }
+    }
+    \KwRet{the coefficients and constant terms}
+\end{algorithm}
+
+\subsection{The final solving algorithm}
+
+We can now make the general algorithm for solving \textit{any} system of $n$ equations with $n$ unknowns, even if it does not have only non-zero coefficients.
+Note that this final algorithm only is a little modification of the \textbf{Algorithm 3}.
+
+\begin{algorithm}
+\caption{An algorithm to find the solutions of a linear system of $n$ equations with $n$ unknowns}
+    \Input{The coefficients and the constant terms of the equation system}
+    \Output{The solutions of the system}
+    Ensure non-zero coefficients with the \textbf{Algorithm 4}\;
+    \eIf{$n = 2$}{
+        Use the \textbf{Algorithm 1} to solve the system\;
+        \KwRet{the result found}
+    }{
+        Use the \textbf{Algorithm 2} to reduce the size of the system\;
+        Recursively call this algorithm to find the solutions of the reduced system\;
+        \uIf{``Infinitely many solutions''}{
+            \KwRet{``Infinitely many solutions''}
+        }
+        \ElseIf{``No solutions''}{
+            \KwRet{``No solutions''}
+        }
+        Ensure non-zero coefficients with the \textbf{Algorithm 4}\;
+        $\displaystyle x_n \gets -\frac{a_{11}}{a_{1n}} x_1 - \frac{a_{12}}{a_{1n}} x_2 - ... - \frac{a_{1n - 1}}{a_{1n}} x_{n - 1} + \frac{b_1}{a_{1n}}$\;
+        \Comment{We take the first equation to find the solution for $x_n$}
+        \BlankLine
+        \KwRet{the solutions found}     
+    }
+\end{algorithm}
+
+\pagebreak
+
+\section{Testing the algorithm}
+
+Now that the algorithm is finished, we can test it with an example.
+This cannot replace a formal proof, but it at least shows that one particular implementation works for some examples.
+
+\subsection{An implementation in Python}
+
+To test the algorithm, I made a quick implementation of it in Python.
+Here are the different algorithms (except the \textbf{Algorithm 3}, which is replaced by the \textbf{Algorithm 5}) in Python:
+
+\vspace{8mm}
+
+\textbf{Algorithm 1}:
+
+\begin{lstlisting}[language=Python]
+import copy  # for making copies of lists (used for the algorithms 2 and 4)
+
+def solve_system_two_unknowns(a_1, b_1, c_1, a_2, b_2, c_2):
+    """Implementation of the Algorithm 1"""
+    if a_2 * b_1 - a_1 * b_2 == 0:
+        if a_1 * c_2 == c_1 * a_2: # Same as a_1 / a_2 == c_1 / c_2
+            return "Infinitely many solutions"
+        else:
+            return "No solutions"
+
+    else:
+        x = (b_1 * c_2 - b_2 * c_1) / (a_2 * b_1 - a_1 * b_2)
+        y = (a_1 * c_2 - a_2 * c_1) / (b_2 * a_1 - b_1 * a_2)
+        return x, y
+\end{lstlisting}
+
+\textbf{Algorithm 2}:
+
+\begin{lstlisting}[language=Python]
+def reduce_system(system):
+    """Implementation of the Algorithm 2"""
+    n = len(system)
+    result = system.copy()
+    for i in range(1, n):  # we work with zero-based indexing
+        for j in range(0, n - 1):  # same
+            result[i][j] += (-system[0][j]/system[0][n - 1]) * system[i][n - 1]
+        result[i][-1] -= (system[0][-1] / system[0][n - 1]) * system[i][n - 1]
+        del result[i][n - 1]
+    del result[0]
+    return result
+\end{lstlisting}
+
+\textbf{Algorithm 4}:
+
+\begin{lstlisting}[language=Python]
+def ensure_non_zero_coefs(system):
+    """Implementation of the Algorithm 4"""
+    result = system.copy()
+    n = len(system)
+    i = 0
+    while i != n:
+        j = 0
+        while j != n:
+            if result[i][j] == 0:
+                for m in range(0, n):  # picking m
+                    if result[m][j] != 0:
+                        break
+
+                for k in range(0, n):
+                    result[i][k] += result[m][k]
+                result[i][-1] += result[m][-1]
+
+                j = 0
+            
+            else:
+                j += 1
+        i += 1
+    return result
+\end{lstlisting}
+
+\textbf{Algorithm 5}:
+
+\begin{lstlisting}[language=Python]
+def solve_system(system):
+    """Implementation of the Algorithm 5"""
+    system = ensure_non_zero_coefs(system)
+    n = len(system)
+    if n == 2:
+        return solve_system_two_unknowns(*system[0], *system[1])
+    else:
+        reduced_system = reduce_system(system)
+        solutions_found = solve_system_non_zero_coefs(reduced_system)
+        if not isinstance(solutions_found, tuple):
+            # Infinitely many or no solutions
+            return solutions_found
+
+        system = ensure_non_zero_coefs(system)
+    
+        x_n = 0
+        for m in range(0, n - 1):
+            x_n -= (system[0][m] / system[0][n - 1]) * solutions_found[m
+        x_n += system[0][-1] / system[0][n - 1]
+
+        return solutions_found + (x_n,)
+\end{lstlisting}
+
+An equation system is represented as a list of the equations in the system.
+Each equation in the system is represented as a list containing in order its coefficients and its constant term.
+The complete file containing the algorithm is named \textit{linear\_system\_solver.py}.
+
+\subsection{A first example}
+
+We will take as an example the following system:
+
+\[
+\begin{cases}
+    2x + 3y - z = 4\\
+    x - 2y + z - 2t = -3\\
+    x + 9y + 2z - t = 8\\
+    3y - 3z + 3t = 9
+\end{cases}
+\]
+
+It has 4 linear equations with 4 unknowns ($x$, $y$, $z$ and $t$).
+We can use the implementation of the \textbf{Algorithm 5} to solve it.
+If we evaluate \textit{solve\_system([[2, 3, -1, 0, 4], [1, -2, 1, -2, -3], [1, 9, 2, -1, 8], [0, 3, -3, 3, 9]])}, we get the tuple \textit{(-8.0, 3.0, -11.0, -11.0)}, which corresponds to the respective solutions for the unknowns.
+It means the solution is $x = -8$, $y = 3$, $z = -11$ and $t = -11$.
+
+\href{https://www.wolframalpha.com/input?i=system+equation+calculator&assumption=%7B%22F%22%2C+%22SolveSystemOf4EquationsCalculator%22%2C+%22equation1%22%7D+-%3E%222x+%2B+3y+-+z+%3D+4%22&assumption=%22FSelect%22+-%3E+%7B%7B%22SolveSystemOf4EquationsCalculator%22%7D%2C+%22dflt%22%7D&assumption=%7B%22F%22%2C+%22SolveSystemOf4EquationsCalculator%22%2C+%22equation2%22%7D+-%3E%22x+-+2y+%2B+z+-+2t+%3D+-3%22&assumption=%7B%22F%22%2C+%22SolveSystemOf4EquationsCalculator%22%2C+%22equation3%22%7D+-%3E%22x+%2B+9y+%2B+2z+-+t+%3D+8%22&assumption=%7B%22F%22%2C+%22SolveSystemOf4EquationsCalculator%22%2C+%22equation4%22%7D+-%3E%223y+-+3z+%2B+3t+%3D+9%22}{This solution was confirmed by Wolfram Alpha}.
+We can also verify it by plugging the solutions found into the equations, and see that it works.
+
+\subsection{A randomised test program}
+
+I also implemented a randomised test program in Python that randomly generates a given number of linear systems up to a given size, and tests the solutions found by the solving program using the \textit{sympy} library.
+It also uses the \textit{fractions} module of the Python standard library to manipulate fractions, and thus have exact results.
+I tested thousands of systems with sizes sometimes up to 100, and I never ran into an issue.
+To execute the test program, run the file \textit{linear\_systems\_tests.py} with Python (having installed the \textit{sympy} library). To modify the values of the test, just change the default values of the function \textit{test\_random\_systems()}.
+
+
+\section{Conclusion}
+
+We have found an algorithm to solve a linear system of equations (with the \textbf{Algorithm 5}).
+This algorithm was not formally proven, but it was at least justified and extensively tested with a Python program.
+There exist many other (probably better) ways of solving linear systems (like Gaussian elimination which is very close to the algorithm I made), but I am 15 years old, and the goal was to make an algorithm on my own, which is what I did.
+Another issue with my algorithm is that it is not very efficient; there exist much more efficient methods.
+
+\vspace{2cm}
+
+\textit{\textbf{Important note:}}
+I noticed that a special case was not treated, and not included in the solving algorithm.
+It is the case where the ``reducing algorithm'' (\textbf{Algorithm 2}) returns a system with less unknowns than equations, i.e. there is an unknown $x_m$ for which $\forall k \le n, a_{km} = 0$.
+Even if this case is \textit{very} rare, it was not treated and thus the solving algorithm found is not fully complete.
+
+\end{document}
